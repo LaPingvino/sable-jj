@@ -12,6 +12,28 @@ import { configClass, varsClass } from 'folds';
 
 enableMapSet();
 
+(() => {
+  const savedSettings = localStorage.getItem('sable-settings');
+  let isDark = true;
+
+  if (savedSettings) {
+    try {
+      const settings = JSON.parse(savedSettings);
+      const themeId = settings.themeId || '';
+      if (themeId.includes('light') || themeId.includes('butter')) {
+        isDark = false;
+      }
+    } catch {
+      /* Ignore malformed JSON */
+    }
+  } else {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  document.documentElement.style.backgroundColor = isDark ? '#1b1a21' : '#f5f5f5';
+  document.documentElement.style.color = isDark ? '#eae8f0' : '#1b1a21';
+})();
+
 import './index.css';
 import './app/styles/themes.css';
 import './app/styles/overrides/General.css';

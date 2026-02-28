@@ -1,12 +1,23 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { onDarkFontWeight, onLightFontWeight } from '../../config.css';
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { ThemeKind, ThemeSettings } from '$appUtils/themeGenerator';
+import { useSetting } from '$state/hooks/settings';
+import { settingsAtom } from '$state/settings';
 import { butterTheme, darkTheme, lightTheme, silverTheme } from '../../colors.css';
-import { settingsAtom } from '../state/settings';
-import { useSetting } from '../state/hooks/settings';
+import { onDarkFontWeight, onLightFontWeight } from '../../config.css';
 
-export enum ThemeKind {
-  Light = 'light',
-  Dark = 'dark',
+export interface CustomTheme {
+  id: string;
+  name: string;
+  kind: ThemeKind;
+  settings: ThemeSettings;
 }
 
 export type Theme = {
@@ -26,36 +37,69 @@ export const SilverTheme: Theme = {
   kind: ThemeKind.Light,
   classNames: ['silver-theme', silverTheme, onLightFontWeight, 'prism-light'],
 };
+
 export const DarkTheme: Theme = {
   id: 'dark-theme',
   kind: ThemeKind.Dark,
   classNames: ['dark-theme', darkTheme, onDarkFontWeight, 'prism-dark'],
 };
+
 export const ButterTheme: Theme = {
   id: 'butter-theme',
   kind: ThemeKind.Dark,
   classNames: ['butter-theme', butterTheme, onDarkFontWeight, 'prism-dark'],
 };
 
+// in useTheme.ts
 export const useThemes = (): Theme[] => {
-  const themes: Theme[] = useMemo(() => [LightTheme, SilverTheme, DarkTheme, ButterTheme], []);
+  const [customThemes] = useSetting(settingsAtom, 'customThemes') as [
+    CustomTheme[] | undefined,
+    Dispatch<SetStateAction<CustomTheme[] | undefined>>,
+  ];
+  const presets: Theme[] = useMemo(() => [LightTheme, SilverTheme, DarkTheme, ButterTheme], []);
 
-  return themes;
+  return useMemo(() => {
+    const userThemes: Theme[] = (customThemes || []).map((t) => ({
+      id: t.id,
+      kind: t.kind,
+      classNames: [
+        t.id,
+        t.kind === ThemeKind.Light ? lightTheme : darkTheme,
+        t.kind === ThemeKind.Light ? onLightFontWeight : onDarkFontWeight,
+        t.kind === ThemeKind.Light ? 'prism-light' : 'prism-dark',
+      ],
+    }));
+    return [...presets, ...userThemes];
+  }, [presets, customThemes]);
 };
 
-export const useThemeNames = (): Record<string, string> =>
-  useMemo(
-    () => ({
+export const useThemeNames = (): Record<string, string> => {
+  const [customThemes] = useSetting(settingsAtom, 'customThemes') as [
+    CustomTheme[] | undefined,
+    Dispatch<SetStateAction<CustomTheme[] | undefined>>,
+  ];
+
+  return useMemo(() => {
+    const names: Record<string, string> = {
       [LightTheme.id]: 'Light',
       [SilverTheme.id]: 'Silver',
       [DarkTheme.id]: 'Dark',
       [ButterTheme.id]: 'Butter',
-    }),
-    []
-  );
+    };
+
+    if (Array.isArray(customThemes)) {
+      customThemes.forEach((t) => {
+        names[t.id] = t.name;
+      });
+    }
+
+    return names;
+  }, [customThemes]);
+};
 
 export const useSystemThemeKind = (): ThemeKind => {
   const darkModeQueryList = useMemo(() => window.matchMedia('(prefers-color-scheme: dark)'), []);
+
   const [themeKind, setThemeKind] = useState<ThemeKind>(
     darkModeQueryList.matches ? ThemeKind.Dark : ThemeKind.Light
   );
@@ -69,7 +113,7 @@ export const useSystemThemeKind = (): ThemeKind => {
     return () => {
       darkModeQueryList.removeEventListener('change', handleMediaQueryChange);
     };
-  }, [darkModeQueryList, setThemeKind]);
+  }, [darkModeQueryList]);
 
   return themeKind;
 };
@@ -82,18 +126,16 @@ export const useActiveTheme = (): Theme => {
   const [lightThemeId] = useSetting(settingsAtom, 'lightThemeId');
   const [darkThemeId] = useSetting(settingsAtom, 'darkThemeId');
 
-  if (!systemTheme) {
-    const selectedTheme = themes.find((theme) => theme.id === themeId) ?? LightTheme;
+  return useMemo(() => {
+    if (!systemTheme) {
+      return themes.find((theme) => theme.id === themeId) ?? LightTheme;
+    }
 
-    return selectedTheme;
-  }
+    const preferredId = systemThemeKind === ThemeKind.Dark ? darkThemeId : lightThemeId;
+    const defaultTheme = systemThemeKind === ThemeKind.Dark ? DarkTheme : LightTheme;
 
-  const selectedTheme =
-    systemThemeKind === ThemeKind.Dark
-      ? (themes.find((theme) => theme.id === darkThemeId) ?? DarkTheme)
-      : (themes.find((theme) => theme.id === lightThemeId) ?? LightTheme);
-
-  return selectedTheme;
+    return themes.find((theme) => theme.id === preferredId) ?? defaultTheme;
+  }, [systemTheme, systemThemeKind, themeId, lightThemeId, darkThemeId, themes]);
 };
 
 const ThemeContext = createContext<Theme | null>(null);
@@ -104,6 +146,5 @@ export const useTheme = (): Theme => {
   if (!theme) {
     throw new Error('No theme provided!');
   }
-
   return theme;
 };

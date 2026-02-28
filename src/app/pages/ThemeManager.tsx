@@ -4,12 +4,12 @@ import {
   DarkTheme,
   LightTheme,
   ThemeContextProvider,
-  ThemeKind,
   useActiveTheme,
   useSystemThemeKind,
-} from '../hooks/useTheme';
+} from '$hooks/useTheme';
 import { useSetting } from '../state/hooks/settings';
 import { settingsAtom } from '../state/settings';
+import { ThemeKind } from '$appUtils/themeGenerator';
 
 export function UnAuthRouteThemeManager() {
   const systemThemeKind = useSystemThemeKind();

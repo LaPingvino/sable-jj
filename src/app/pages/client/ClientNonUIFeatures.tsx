@@ -29,6 +29,7 @@ import { useInboxNotificationsSelected } from '$hooks/router/useInbox';
 import { useMediaAuthentication } from '$hooks/useMediaAuthentication';
 import { BackgroundNotifications } from './BackgroundNotifications';
 import { pendingNotificationAtom } from '$state/sessions';
+import { ThemeInjector } from '$components/ThemeInjector';
 
 function SystemEmojiFeature() {
   const [twitterEmoji] = useSetting(settingsAtom, 'twitterEmoji');
@@ -294,6 +295,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
       <InviteNotifications />
       <MessageNotifications />
       <BackgroundNotifications />
+      <ThemeInjector />
       {children}
     </>
   );

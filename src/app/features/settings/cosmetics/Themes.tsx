@@ -1,7 +1,9 @@
 import React, {
   ChangeEventHandler,
+  Dispatch,
   KeyboardEventHandler,
   MouseEventHandler,
+  SetStateAction,
   useState,
 } from 'react';
 import {
@@ -28,16 +30,18 @@ import { useSetting } from '$state/hooks/settings';
 import { settingsAtom } from '$state/settings';
 import { SettingTile } from '$components/setting-tile';
 import {
+  CustomTheme,
   DarkTheme,
   LightTheme,
   Theme,
-  ThemeKind,
   useSystemThemeKind,
   useThemeNames,
   useThemes,
 } from '$hooks/useTheme';
 import { stopPropagation } from '$appUtils/keyboard';
 import { SequenceCardStyle } from '../styles.css';
+import { ThemeBuilder } from './ThemeBuilder';
+import { ThemeKind } from '$appUtils/themeGenerator';
 
 type ThemeSelectorProps = {
   themeNames: Record<string, string>;
@@ -46,23 +50,80 @@ type ThemeSelectorProps = {
   onSelect: (theme: Theme) => void;
 };
 export const ThemeSelector = as<'div', ThemeSelectorProps>(
-  ({ themeNames, themes, selected, onSelect, ...props }, ref) => (
-    <Menu {...props} ref={ref}>
-      <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
-        {themes.map((theme) => (
-          <MenuItem
-            key={theme.id}
-            size="300"
-            variant={theme.id === selected.id ? 'Primary' : 'Surface'}
-            radii="300"
-            onClick={() => onSelect(theme)}
-          >
-            <Text size="T300">{themeNames[theme.id] ?? theme.id}</Text>
-          </MenuItem>
-        ))}
-      </Box>
-    </Menu>
-  )
+  ({ themeNames, themes, selected, onSelect, ...props }, ref) => {
+    const [, setCustomThemes] = useSetting(settingsAtom, 'customThemes') as [
+      CustomTheme[] | undefined,
+      Dispatch<SetStateAction<CustomTheme[] | undefined>>,
+    ];
+
+    const handleDelete = (evt: React.MouseEvent, themeId: string) => {
+      evt.stopPropagation();
+      setCustomThemes((prev) => (prev || []).filter((t) => t.id !== themeId));
+    };
+
+    return (
+      <Menu {...props} ref={ref}>
+        <Box
+          direction="Column"
+          gap="100"
+          style={{ padding: config.space.S100, minWidth: toRem(200) }}
+        >
+          {themes.map((theme) => {
+            const isPreset = ['light-theme', 'silver-theme', 'dark-theme', 'butter-theme'].includes(
+              theme.id
+            );
+
+            return (
+              <MenuItem
+                key={theme.id}
+                size="300"
+                variant={theme.id === selected.id ? 'Primary' : 'Surface'}
+                radii="300"
+                onClick={() => onSelect(theme)}
+                after={
+                  <Box gap="100" alignItems="Center">
+                    {!isPreset && (
+                      <>
+                        <Button
+                          size="300"
+                          variant="Secondary"
+                          fill="None"
+                          radii="Pill"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.dispatchEvent(
+                              new CustomEvent('lab-load-theme', {
+                                detail: { ...theme },
+                              })
+                            );
+                          }}
+                        >
+                          <Icon size="200" src={Icons.Pencil} />
+                        </Button>
+                        <Button
+                          size="300"
+                          variant="Critical"
+                          fill="None"
+                          radii="Pill"
+                          onClick={(e) => handleDelete(e, theme.id)}
+                        >
+                          <Icon size="200" src={Icons.Delete} />
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+                }
+              >
+                <Text size="T300" style={{ flex: 1 }}>
+                  {themeNames[theme.id] ?? theme.id}
+                </Text>
+              </MenuItem>
+            );
+          })}
+        </Box>
+      </Menu>
+    );
+  }
 );
 
 function SelectTheme({ disabled }: { disabled?: boolean }) {
@@ -336,6 +397,10 @@ export function Appearance() {
   return (
     <Box direction="Column" gap="700">
       <ThemeSettings />
+      <Box direction="Column" gap="100">
+        <Text size="L400">Theme Lab</Text>
+        <ThemeBuilder />
+      </Box>
 
       <Box direction="Column" gap="100">
         <Text size="L400">Visual Tweaks</Text>

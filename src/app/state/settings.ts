@@ -1,3 +1,4 @@
+import { CustomTheme } from '$hooks/useTheme';
 import { atom } from 'jotai';
 
 const STORAGE_KEY = 'settings';
@@ -57,6 +58,7 @@ export interface Settings {
   privacyBlurEmotes: boolean;
   showPronouns: boolean;
   renderGlobalNameColors: boolean;
+  customThemes: CustomTheme[];
 
   // Sable features!
   mobileGestures: boolean;
@@ -105,6 +107,7 @@ const defaultSettings: Settings = {
   privacyBlurEmotes: false,
   showPronouns: true,
   renderGlobalNameColors: true,
+  customThemes: [],
 
   // Sable features!
   mobileGestures: true,
