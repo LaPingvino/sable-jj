@@ -50,7 +50,6 @@ export const ButterTheme: Theme = {
   classNames: ['butter-theme', butterTheme, onDarkFontWeight, 'prism-dark'],
 };
 
-// in useTheme.ts
 export const useThemes = (): Theme[] => {
   const [customThemes] = useSetting(settingsAtom, 'customThemes') as [
     CustomTheme[] | undefined,
