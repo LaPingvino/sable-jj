@@ -38,17 +38,6 @@ export function ThemeBuilder() {
     Dispatch<SetStateAction<CustomTheme[] | undefined>>,
   ];
 
-  const previewTokens = useMemo(() => {
-    const settings: ThemeSettings = {
-      id: 'preview',
-      name: 'Preview',
-      primary,
-      bg,
-      contrast,
-    };
-    return generateSableVariables(settings);
-  }, [primary, bg, contrast]);
-
   const showStatus = (msg: string) => {
     setStatusMsg(msg);
     setTimeout(() => setStatusMsg(null), 3000);
@@ -56,6 +45,24 @@ export function ThemeBuilder() {
 
   const handleUpdatePrimary = (val: string) => setPrimary(val.startsWith('#') ? val : `#${val}`);
   const handleUpdateBg = (val: string) => setBg(val.startsWith('#') ? val : `#${val}`);
+
+  const previewTokens = useMemo(() => {
+    // eslint-disable-next-line import/no-named-as-default-member
+    const isValidHex = (hex: string) => chroma.valid(hex);
+
+    const safePrimary = isValidHex(primary) ? primary : '#6e56cf';
+    const safeBg = isValidHex(bg) ? bg : '#1b1a21';
+
+    const settings: ThemeSettings = {
+      id: 'preview',
+      name: 'Preview',
+      primary: safePrimary,
+      bg: safeBg,
+      contrast,
+    };
+
+    return generateSableVariables(settings);
+  }, [primary, bg, contrast]);
 
   const handleExport = useCallback(
     (data: CustomTheme | { name: string; primary: string; bg: string; contrast: number }) => {
